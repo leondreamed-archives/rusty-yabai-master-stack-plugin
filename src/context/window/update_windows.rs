@@ -84,7 +84,7 @@ impl WindowsManager<'_> {
 
 			// If there are windows that aren't touching either the left side or the right side
 			// after the move, fill up master and then move the rest to stack
-			let middle_windows = self.get_middle_windows();
+			let mut middle_windows = self.get_middle_windows();
 			while middle_windows.len() > 0 {
 				let middle_window = &middle_windows[0];
 				log::debug!("Middle window {} detected.", middle_window.app);
@@ -96,6 +96,7 @@ impl WindowsManager<'_> {
 					log::debug!("Moving middle window {} to stack.", middle_window.app);
 					self.move_window_to_stack(middle_window);
 				}
+				middle_windows = self.get_middle_windows();
 			}
 
 			// If there are still not enough master windows, move some of the stack windows to master

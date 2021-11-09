@@ -5,6 +5,8 @@ mod trigger_commands;
 mod types;
 mod utils;
 
+use std::sync::{Arc, Mutex};
+
 use crate::{
 	context::YabaiPlugin,
 	run_commands::{
@@ -25,12 +27,32 @@ fn main() {
 	let plugin = YabaiPlugin::new();
 	let command_type = std::env::args().nth(1).expect("No command type given");
 	let command_value = std::env::args().nth(2).expect("No command value given");
-	let lock_manager = LockManager::new(plugin_lock_file_path.to_string());
+	let lock_manager = Arc::new(Mutex::new(LockManager::new(
+		plugin_lock_file_path.to_string(),
+	)));
 
+	let panic_lock_manager = lock_manager.clone();
 	std::panic::set_hook(Box::new(move |e| {
 		log::debug!("{:?}", e);
-		LockManager::new(plugin_lock_file_path.to_string()).release_lock();
+		panic_lock_manager
+			.lock()
+			.expect("Failed to get lock.")
+			.release_lock(false)
+			.expect("Failed to release lock.");
 	}));
+
+	if command_type == "trigger" && command_value == "yabai-started" {
+		lock_manager
+			.lock()
+			.expect("Failed to lock mutex")
+			.release_lock(true)
+			.expect("Failed to release lock");
+	}
+	lock_manager
+		.lock()
+		.expect("Failed to lock mutex")
+		.acquire_lock()
+		.expect("Failed to acquire lock");
 
 	match command_type.as_str() {
 		"run" => match command_value.as_str() {
@@ -50,5 +72,9 @@ fn main() {
 		_ => panic!("Unrecognized command type {}", command_type),
 	}
 
-	lock_manager.release_lock();
+	lock_manager
+		.lock()
+		.expect("Failed to get mutex lock")
+		.release_lock(false)
+		.expect("Failed to release lock.");
 }
