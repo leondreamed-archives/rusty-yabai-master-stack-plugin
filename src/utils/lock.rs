@@ -14,7 +14,7 @@ impl LockManager {
 		}
 	}
 
-	pub fn release_lock(&self, force: bool) -> anyhow::Result<()> {
+	pub fn release_lock(&mut self, force: bool) -> anyhow::Result<()> {
 		if force || self.locked {
 			if let Err(e) = fs::remove_dir(&self.lock_path) {
 				if e.kind() != ErrorKind::NotFound {
@@ -22,15 +22,17 @@ impl LockManager {
 				}
 			}
 		}
+		self.locked = false;
 		Ok(())
 	}
 
-	pub fn acquire_lock(&self) -> anyhow::Result<()> {
+	pub fn acquire_lock(&mut self) -> anyhow::Result<()> {
 		if let Err(e) = fs::create_dir(&self.lock_path) {
 			if e.kind() == ErrorKind::AlreadyExists {
 				return Err(anyhow::Error::msg("Failed to acquire lock."));
 			}
 		}
+		self.locked = true;
 		Ok(())
 	}
 }
