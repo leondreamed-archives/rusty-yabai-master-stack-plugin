@@ -5,7 +5,7 @@ use crate::{
 };
 
 pub fn close_focused_window(plugin: &YabaiPlugin) {
-	let wm = create_windows_manager(plugin);
+	let mut wm = create_windows_manager(plugin);
 	let window_to_close = some_or_return!(wm.get_focused_window());
 
 	// Sort the windows from top to bottom
@@ -14,7 +14,7 @@ pub fn close_focused_window(plugin: &YabaiPlugin) {
 	let mut stack_windows = wm.get_stack_windows();
 	stack_windows.sort_by(|w1, w2| w1.frame.y.cmp(&w2.frame.y));
 
-	let window_to_focus: Option<&Window> = None;
+	let mut window_to_focus: Option<&Window> = None;
 	if wm.is_stack_window(&window_to_close) {
 		// If the window is the only stack window, then focus on the master window
 		if stack_windows.len() == 1 {

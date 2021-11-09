@@ -22,7 +22,7 @@ impl WindowsManager<'_> {
 			.target_num_master_windows
 			.unwrap_or(self.expected_current_num_master_windows);
 
-		// If targetNumMasterWindows is greater or equal to the number of windows, all windows must be touching the left side
+		// If targetnum_master_windows is greater or equal to the number of windows, all windows must be touching the left side
 		if target_num_master_windows >= self.windows_data.len()
 			&& !self
 				.windows_data
@@ -39,7 +39,7 @@ impl WindowsManager<'_> {
 			}
 
 			// Verify that there is no middle window
-			for window in self.windows_data {
+			for window in &self.windows_data {
 				if self.is_middle_window(&window) {
 					return CheckValidLayoutPayload::Failure(format!(
 						"A middle window ({}) was detected.",

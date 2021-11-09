@@ -26,11 +26,12 @@ pub fn create_windows_manager(plugin: &YabaiPlugin) -> WindowsManager {
 
 	let space = plugin.get_focused_space();
 
-	let wm = WindowsManager {
+	let expected_current_num_master_windows = state.num_master_windows[&space.id];
+	let mut wm = WindowsManager {
 		display,
 		space,
 		plugin,
-		expected_current_num_master_windows: state.numMasterWindows[&space.id],
+		expected_current_num_master_windows,
 		windows_data: vec![],
 	};
 
@@ -48,9 +49,9 @@ pub enum GetWindowDataProps {
 impl WindowsManager<'_> {
 	pub fn get_windows_data(&self) -> Vec<Window> {
 		let output = self.plugin.run_yabai_command("-m query --windows");
-		let windowsData: Vec<Window> =
+		let windows_data: Vec<Window> =
 			serde_json::from_str(&output).expect("Failed to parse windows");
-		windowsData.into_iter().filter(|window| {
+		windows_data.into_iter().filter(|window| {
 			if window.floating != 0
 				|| window.display != self.display.index
 				|| window.space != self.space.index
@@ -65,27 +66,27 @@ impl WindowsManager<'_> {
 			return true;
 		});
 
-		windowsData
+		windows_data
 	}
 
-	pub fn validate_state(&self, state: &mut State) {
+	pub fn validate_state(&mut self, state: &mut State) {
 		if self.windows_data.len() < self.expected_current_num_master_windows {
 			self.expected_current_num_master_windows = self.windows_data.len();
-			state.numMasterWindows[&self.space.id] = self.windows_data.len();
+			*state.num_master_windows.get_mut(&self.space.id).unwrap() = self.windows_data.len();
 		}
 
-		if state.numMasterWindows[&self.space.id] <= 0 {
-			state.numMasterWindows[&self.space.id] = 1;
+		if state.num_master_windows[&self.space.id] <= 0 {
+			*state.num_master_windows.get_mut(&self.space.id).unwrap() = 1;
 		}
 
 		self.plugin.write_state(state);
 	}
 
-	pub fn initialize(&self) {
+	pub fn initialize(&mut self) {
 		self.windows_data = self.get_windows_data();
 	}
 
-	pub fn refresh_windows_data(&self) {
+	pub fn refresh_windows_data(&mut self) {
 		let new_windows_data = self.get_windows_data();
 		self.windows_data = new_windows_data;
 	}
@@ -94,14 +95,14 @@ impl WindowsManager<'_> {
 		self.windows_data.iter().find(|win| window.id == win.id)
 	}
 
-	pub fn run_yabai_command(&self, command: &str) -> String {
+	pub fn run_yabai_command(&mut self, command: &str) -> String {
 		let output = self.plugin.run_yabai_command(command);
 		self.refresh_windows_data();
 		return output;
 	}
 
-	pub fn get_window_data(&self, props: GetWindowDataProps) -> Window {
-		let windows_iterator = self.windows_data.into_iter();
+	pub fn get_window_data(&self, props: GetWindowDataProps) -> &Window {
+		let mut windows_iterator = self.windows_data.iter();
 		match props {
 			GetWindowDataProps::ProcessId(process_id) => windows_iterator
 				.find(|window| window.pid == process_id)
@@ -123,7 +124,7 @@ impl WindowsManager<'_> {
 		* 2. If there is more than one master window, the dividing line must cross the left side of two
 		* windows
 		* Using these observations, we can loop through the windows in descending x-coordinate starting from the top-right window
-		* and for each pair of windows that share x-coordinates, we check if the numMasterWindows is less
+		* and for each pair of windows that share x-coordinates, we check if the num_master_windows is less
 		* than the number of windows we've iterated through, and if so, return the x-coordinate of the currently
 		* processed window
 		*/
@@ -146,9 +147,9 @@ impl WindowsManager<'_> {
 
 		// Get all the non-stack windows to the left of the top-right window sorted by x coordinate
 		let mut eligible_windows = non_stack_windows
-			.into_iter()
+			.iter()
 			.filter(|window| window.frame.x <= top_right_window.frame.x)
-			.collect::<Vec<&Window>>();
+			.collect::<Vec<&&Window>>();
 
 		// Sort the windows by descending order of x-coordinate
 		eligible_windows.sort_by(|window1, window2| window2.frame.x.cmp(&window1.frame.x));
@@ -190,7 +191,7 @@ impl WindowsManager<'_> {
 			.filter(|window| self.is_window_touching_left_edge(window))
 			.collect();
 
-		let top_left_window = left_windows[0];
+		let mut top_left_window = left_windows[0];
 		for window in left_windows {
 			if window.frame.y <= top_left_window.frame.y {
 				top_left_window = window;
@@ -208,7 +209,7 @@ impl WindowsManager<'_> {
 			return None;
 		}
 
-		let lowest_y_coordinate = self.windows_data[0].frame.y;
+		let mut lowest_y_coordinate = self.windows_data[0].frame.y;
 
 		for window in &self.windows_data {
 			if window.frame.y < lowest_y_coordinate {
@@ -222,7 +223,7 @@ impl WindowsManager<'_> {
 			.filter(|window| window.frame.y == lowest_y_coordinate)
 			.collect();
 
-		let top_right_window = top_windows[0];
+		let mut top_right_window = top_windows[0];
 		for window in top_windows {
 			if window.frame.x > top_right_window.frame.x {
 				top_right_window = window;
@@ -233,7 +234,7 @@ impl WindowsManager<'_> {
 	}
 
 	pub fn get_widest_stack_window(&self) -> Option<&Window> {
-		let widest_stack_window: Option<&Window> = None;
+		let mut widest_stack_window: Option<&Window> = None;
 		for window in self.get_stack_windows() {
 			match widest_stack_window {
 				None => widest_stack_window = Some(window),
@@ -249,7 +250,7 @@ impl WindowsManager<'_> {
 	}
 
 	pub fn get_widest_master_window(&self) -> Option<&Window> {
-		let widest_master_window: Option<&Window> = None;
+		let mut widest_master_window: Option<&Window> = None;
 
 		for window in self.get_master_windows() {
 			match widest_master_window {
@@ -296,7 +297,7 @@ impl WindowsManager<'_> {
 	 * Turns the stack into a column by making sure the split direction of all the stack windows
 	 * is horizontal
 	 */
-	pub fn columnize_stack_windows(&self) {
+	pub fn columnize_stack_windows(&mut self) {
 		// In this case, we want to columnize all the windows to the left of the dividing line
 		let dividing_line_x_coordinate = self.get_dividing_line_x_coordinate();
 
@@ -317,7 +318,7 @@ impl WindowsManager<'_> {
 		}
 	}
 
-	pub fn move_window_to_stack(&self, window: &Window) {
+	pub fn move_window_to_stack(&mut self, window: &Window) {
 		log::debug!("Moving window {} to stack.", window.app);
 
 		self.columnize_stack_windows();
@@ -438,12 +439,12 @@ impl WindowsManager<'_> {
 			.collect()
 	}
 
-	pub fn get_top_window<'w>(&self, windows: &'w Vec<&Window>) -> Option<&'w Window> {
+	pub fn get_top_window<'w>(&self, windows: &Vec<&'w Window>) -> Option<&'w Window> {
 		if windows.len() == 0 {
 			return None;
 		}
 
-		let top_window = windows[0];
+		let mut top_window = windows[0];
 		for w in windows {
 			if w.frame.y < top_window.frame.y {
 				top_window = w;
@@ -459,12 +460,12 @@ impl WindowsManager<'_> {
 			.unwrap_or(false)
 	}
 
-	pub fn get_bottom_window<'w>(&self, windows: &'w Vec<&Window>) -> Option<&'w Window> {
+	pub fn get_bottom_window<'w>(&self, windows: &Vec<&'w Window>) -> Option<&'w Window> {
 		if windows.len() == 0 {
 			return None;
 		}
 
-		let bottom_window = windows[0];
+		let mut bottom_window = windows[0];
 		for w in windows {
 			if w.frame.y > bottom_window.frame.y {
 				bottom_window = w;

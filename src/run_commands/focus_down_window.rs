@@ -1,7 +1,7 @@
 use crate::context::{window::create_windows_manager, YabaiPlugin};
 
 pub fn focus_down_window(plugin: &YabaiPlugin) {
-	let wm = create_windows_manager(plugin);
+	let mut wm = create_windows_manager(plugin);
 	if let Some(focused_window) = wm.get_focused_window() {
 		if wm.is_master_window(&focused_window)
 			&& wm.is_bottom_window(&wm.get_master_windows(), &focused_window)

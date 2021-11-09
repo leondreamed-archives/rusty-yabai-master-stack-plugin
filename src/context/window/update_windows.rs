@@ -8,13 +8,13 @@ pub struct UpdateWindowsProps {
 
 impl WindowsManager<'_> {
 	pub fn update_windows(
-		&self,
+		&mut self,
 		UpdateWindowsProps {
 			target_num_master_windows,
 		}: UpdateWindowsProps,
 	) {
 		log::debug!(
-			"updateWindows() called with targetNumMasterWindows = {}",
+			"updateWindows() called with targetnum_master_windows = {}",
 			target_num_master_windows
 		);
 		let layout_validity = self.check_valid_layout(CheckValidLayoutProps {
@@ -42,8 +42,8 @@ impl WindowsManager<'_> {
 				"Master windows: {:?}",
 				master_windows
 					.iter()
-					.map(|w| w.app)
-					.collect::<Vec<String>>()
+					.map(|w| &w.app)
+					.collect::<Vec<&String>>()
 			);
 
 			let mut cur_num_master_windows = master_windows.len();
@@ -76,7 +76,7 @@ impl WindowsManager<'_> {
 
 			// If there are windows that aren't touching either the left side or the right side
 			// after the move, fill up master and then move the rest to stack
-			let mut middle_windows = self.get_middle_windows();
+			let middle_windows = self.get_middle_windows();
 			while middle_windows.len() > 0 {
 				let middle_window = middle_windows[0];
 				log::debug!("Middle window {} detected.", middle_window.app);
@@ -91,7 +91,7 @@ impl WindowsManager<'_> {
 			}
 
 			// If there are still not enough master windows, move some of the stack windows to master
-			let stack_windows = self.get_stack_windows();
+			let mut stack_windows = self.get_stack_windows();
 
 			// Sort the stack windows by reverse y-coordinate and reverse x-coordinate to move the
 			// bottom-rightmost windows first

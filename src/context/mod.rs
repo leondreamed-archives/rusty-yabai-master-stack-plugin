@@ -13,6 +13,10 @@ pub struct YabaiPlugin {
 	pub handler_lock_manager: LockManager,
 }
 
+use load_dotenv::load_dotenv;
+
+load_dotenv!();
+
 impl YabaiPlugin {
 	pub fn new() -> Self {
 		YabaiPlugin {

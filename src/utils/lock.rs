@@ -14,9 +14,9 @@ impl LockManager {
 		}
 	}
 
-	pub fn release_lock(&self, force: bool) {
+	pub fn release_lock(&mut self, force: bool) {
 		if force || self.locked {
-			if let Err(e) = fs::remove_dir(self.lock_path) {
+			if let Err(e) = fs::remove_dir(self.lock_path.clone()) {
 				if e.kind() != ErrorKind::NotFound {
 					panic!("Failed to release lock.");
 				}
@@ -25,7 +25,7 @@ impl LockManager {
 		}
 	}
 
-	pub fn acquire_lock(&self, lock_path: String) {
+	pub fn acquire_lock(&mut self, lock_path: String) {
 		if let Err(e) = fs::create_dir(lock_path) {
 			if e.kind() == ErrorKind::AlreadyExists {
 				panic!("Could not acquire lock.");

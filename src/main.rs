@@ -1,15 +1,11 @@
 mod context;
+mod macros;
 mod run_commands;
 mod trigger_commands;
-mod macros;
 mod types;
 mod utils;
 
-use load_dotenv::try_load_dotenv;
-
 use crate::context::YabaiPlugin;
-
-try_load_dotenv!();
 
 fn main() {
 	let yabai_plugin = YabaiPlugin::new();

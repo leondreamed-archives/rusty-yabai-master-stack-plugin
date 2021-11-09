@@ -10,7 +10,7 @@ use crate::context::{
 
 pub fn window_created(plugin: &YabaiPlugin) {
 	log::debug!("Starting to handle window_created");
-	let wm = create_windows_manager(plugin);
+	let mut wm = create_windows_manager(plugin);
 
 	if let CheckValidLayoutPayload::Success = wm.check_valid_layout(CheckValidLayoutProps {
 		target_num_master_windows: None,
@@ -18,8 +18,6 @@ pub fn window_created(plugin: &YabaiPlugin) {
 		log::debug!("Valid layout detected; no changes were made.");
 	}
 
-	let process_id = env::var("YABAI_PROCESS_ID");
-	let window_id = env::var("YABAI_WINDOW_ID");
 	let cur_num_master_windows = wm.get_master_windows().len();
 
 	let window;
@@ -39,7 +37,7 @@ pub fn window_created(plugin: &YabaiPlugin) {
 
 	let state = plugin.read_state();
 
-	if cur_num_master_windows > 1 && cur_num_master_windows <= state.numMasterWindows[&wm.space.id]
+	if cur_num_master_windows > 1 && cur_num_master_windows <= state.num_master_windows[&wm.space.id]
 	{
 		// move the window to the master
 		log::debug!("Moving newly created window to master.");
@@ -52,7 +50,7 @@ pub fn window_created(plugin: &YabaiPlugin) {
 	}
 
 	wm.update_windows(UpdateWindowsProps {
-		target_num_master_windows: state.numMasterWindows[&wm.space.id],
+		target_num_master_windows: state.num_master_windows[&wm.space.id],
 	});
 
 	log::debug!("Finished handling window_created");

@@ -1,25 +1,23 @@
-use std::fs;
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::fs;
 
 use super::YabaiPlugin;
 
 #[derive(Deserialize, Serialize)]
 pub struct State {
-	pub numMasterWindows: HashMap<String, usize>
+	pub num_master_windows: HashMap<String, usize>,
 }
 
 impl State {
 	pub fn default(context: &YabaiPlugin) -> Self {
 		let spaces = context.get_spaces();
-		let numMasterWindows = HashMap::new();
+		let mut num_master_windows = HashMap::new();
 		for space in spaces {
-			numMasterWindows.insert(space.id, 1);
+			num_master_windows.insert(space.id, 1);
 		}
 
-		Self {
-			numMasterWindows,
-		}
+		Self { num_master_windows }
 	}
 }
 
@@ -28,13 +26,16 @@ impl YabaiPlugin {
 		// If the state doesn't exist, create it
 		let state = match fs::read_to_string("state.json") {
 			Ok(state_str) => serde_json::from_str(&state_str).expect("Failed to parse state.json"),
-			Err(_) => State::default(self)
+			Err(_) => State::default(self),
 		};
 
 		state
 	}
 	pub fn write_state(&self, state: &State) {
-		fs::write("state.json", serde_json::to_string(state).expect("Failed to stringify state.")).expect("Failed to write state");
+		fs::write(
+			"state.json",
+			serde_json::to_string(state).expect("Failed to stringify state."),
+		)
+		.expect("Failed to write state");
 	}
 }
-
