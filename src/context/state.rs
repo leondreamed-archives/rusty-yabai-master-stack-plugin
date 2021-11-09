@@ -24,7 +24,7 @@ impl State {
 impl YabaiPlugin {
 	pub fn read_state(&self) -> State {
 		// If the state doesn't exist, create it
-		let state = match fs::read_to_string("state.json") {
+		let state = match fs::read_to_string("/Users/leonzalion/code/rusty-yabai-master-stack-plugin/state.json") {
 			Ok(state_str) => serde_json::from_str(&state_str).expect("Failed to parse state.json"),
 			Err(_) => State::default(self),
 		};
@@ -33,7 +33,7 @@ impl YabaiPlugin {
 	}
 	pub fn write_state(&self, state: &State) {
 		fs::write(
-			"state.json",
+			"/Users/leonzalion/code/rusty-yabai-master-stack-plugin/state.json",
 			serde_json::to_string(state).expect("Failed to stringify state."),
 		)
 		.expect("Failed to write state");

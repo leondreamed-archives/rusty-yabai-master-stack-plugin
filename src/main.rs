@@ -16,16 +16,20 @@ use crate::{
 };
 
 fn main() {
+	std::env::set_var("RUST_LOG", "debug");
 	env_logger::init();
+
+	let plugin_lock_file_path =
+		"/Users/leonzalion/code/rusty-yabai-master-stack-plugin/plugin.lock".to_string();
 
 	let plugin = YabaiPlugin::new();
 	let command_type = std::env::args().nth(1).expect("No command type given");
 	let command_value = std::env::args().nth(2).expect("No command value given");
-	let lock_manager = LockManager::new("plugin.lock".to_string());
+	let lock_manager = LockManager::new(plugin_lock_file_path.to_string());
 
 	std::panic::set_hook(Box::new(move |e| {
 		log::debug!("{:?}", e);
-		LockManager::new("plugin.lock".to_string()).release_lock();
+		LockManager::new(plugin_lock_file_path.to_string()).release_lock();
 	}));
 
 	match command_type.as_str() {
