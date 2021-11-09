@@ -2,13 +2,14 @@ use serde::{Deserialize};
 
 #[derive(Clone, Deserialize)]
 pub struct Frame {
-	pub x: usize,
-	pub y: usize,
-	pub w: usize,
-	pub h: usize,
+	pub x: f64,
+	pub y: f64,
+	pub w: f64,
+	pub h: f64,
 }
 
 #[derive(Clone, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Window {
 	pub id: usize,
 	pub pid: usize,
@@ -28,35 +29,28 @@ pub struct Window {
 	pub sticky: usize,
 	pub minimized: usize,
 	pub topmost: usize,
-	pub opacity: usize,
+	pub opacity: f64,
 	pub shadow: usize,
 	pub border: usize,
-
-	#[serde(rename = "kebab-case")]
 	pub stack_index: usize,
-
-	#[serde(rename = "kebab-case")]
 	pub zoom_parent: usize,
-
-	#[serde(rename = "kebab-case")]
 	pub zoom_fullscreen: usize,
-
-	#[serde(rename = "kebab-case")]
 	pub native_fullscreen: usize,
 }
 
 #[derive(Clone, Deserialize)]
 pub struct Display {
 	pub id: usize,
-	pub uuid: usize,
+	pub uuid: String,
 	pub index: usize,
 	pub spaces: Vec<usize>,
 	pub frame: Frame,
 }
 
 #[derive(Clone, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Space {
-	pub id: String,
+	pub id: usize,
 	pub label: String,
 	pub index: usize,
 	pub display: usize,
@@ -64,13 +58,7 @@ pub struct Space {
 	pub r#type: String,
 	pub visible: usize,
 	pub focused: usize,
-
-	#[serde(rename = "kebab-case")]
 	pub native_fullscreen: usize,
-
-	#[serde(rename = "kebab-case")]
 	pub first_window: usize,
-
-	#[serde(rename = "kebab-case")]
 	pub last_window: usize,
 }

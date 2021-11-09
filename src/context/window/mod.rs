@@ -136,7 +136,7 @@ impl WindowsManager<'_> {
 		* than the number of windows we've iterated through, and if so, return the x-coordinate of the currently
 		* processed window
 		*/
-	pub fn get_dividing_line_x_coordinate(&self) -> usize {
+	pub fn get_dividing_line_x_coordinate(&self) -> f64 {
 		let top_right_window = self.get_top_right_window().unwrap_or_else(|| {
 			panic!("get_dividing_line_x_coordinate() was called when there are no windows.");
 		});
@@ -160,7 +160,13 @@ impl WindowsManager<'_> {
 			.collect::<Vec<&&Window>>();
 
 		// Sort the windows by descending order of x-coordinate
-		eligible_windows.sort_by(|window1, window2| window2.frame.x.cmp(&window1.frame.x));
+		eligible_windows.sort_by(|window1, window2| {
+			window2
+				.frame
+				.x
+				.partial_cmp(&window1.frame.x)
+				.expect("Failed to compare floats")
+		});
 
 		let num_windows_to_right_of_top_right_window =
 			non_stack_windows.len() - eligible_windows.len();
@@ -298,7 +304,7 @@ impl WindowsManager<'_> {
 	pub fn does_stack_exist(&self) -> bool {
 		let top_right_window = self.get_top_right_window();
 		match top_right_window {
-			Some(window) => window.frame.x != 0,
+			Some(window) => window.frame.x != 0f64,
 			None => false,
 		}
 	}

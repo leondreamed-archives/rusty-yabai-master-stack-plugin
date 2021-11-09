@@ -10,9 +10,19 @@ pub fn close_focused_window(plugin: &YabaiPlugin) {
 
 	// Sort the windows from top to bottom
 	let mut master_windows = wm.get_master_windows();
-	master_windows.sort_by(|w1, w2| w1.frame.y.cmp(&w2.frame.y));
+	master_windows.sort_by(|w1, w2| {
+		w1.frame
+			.y
+			.partial_cmp(&w2.frame.y)
+			.expect("Failed to sort floats")
+	});
 	let mut stack_windows = wm.get_stack_windows();
-	stack_windows.sort_by(|w1, w2| w1.frame.y.cmp(&w2.frame.y));
+	stack_windows.sort_by(|w1, w2| {
+		w1.frame
+			.y
+			.partial_cmp(&w2.frame.y)
+			.expect("Failed to sort floats")
+	});
 
 	let mut window_to_focus: Option<&Window> = None;
 	if wm.is_stack_window(&window_to_close) {

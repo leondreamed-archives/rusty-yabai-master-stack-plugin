@@ -6,7 +6,7 @@ use super::YabaiPlugin;
 
 #[derive(Deserialize, Serialize)]
 pub struct State {
-	pub num_master_windows: HashMap<String, usize>,
+	pub num_master_windows: HashMap<usize, usize>,
 }
 
 impl State {

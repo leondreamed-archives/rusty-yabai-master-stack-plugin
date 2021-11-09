@@ -58,9 +58,17 @@ impl WindowsManager<'_> {
 				// Sort the windows from bottom to top and then right to left
 				master_windows.sort_by(|window1, window2| {
 					if window1.frame.y != window2.frame.y {
-						window1.frame.y.cmp(&window2.frame.y)
+						window1
+							.frame
+							.y
+							.partial_cmp(&window2.frame.y)
+							.expect("Failed to sort floats")
 					} else {
-						window1.frame.x.cmp(&window2.frame.x)
+						window1
+							.frame
+							.x
+							.partial_cmp(&window2.frame.x)
+							.expect("Failed to sort floats")
 					}
 				});
 
@@ -97,9 +105,17 @@ impl WindowsManager<'_> {
 			// bottom-rightmost windows first
 			stack_windows.sort_by(|window1, window2| {
 				if window1.frame.x != window2.frame.x {
-					window2.frame.x.cmp(&window1.frame.x)
+					window2
+						.frame
+						.x
+						.partial_cmp(&window1.frame.x)
+						.expect("Failed to sort floats")
 				} else {
-					window2.frame.y.cmp(&window1.frame.y)
+					window2
+						.frame
+						.y
+						.partial_cmp(&window1.frame.y)
+						.expect("Failed to sort floats")
 				}
 			});
 
