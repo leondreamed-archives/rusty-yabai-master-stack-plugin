@@ -2,7 +2,7 @@ use std::fs;
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
-use super::PluginContext;
+use super::YabaiPlugin;
 
 #[derive(Deserialize, Serialize)]
 pub struct State {
@@ -10,7 +10,7 @@ pub struct State {
 }
 
 impl State {
-	pub fn default(context: &PluginContext) -> Self {
+	pub fn default(context: &YabaiPlugin) -> Self {
 		let spaces = context.get_spaces();
 		let numMasterWindows = HashMap::new();
 		for space in spaces {
@@ -23,7 +23,7 @@ impl State {
 	}
 }
 
-impl PluginContext {
+impl YabaiPlugin {
 	pub fn read_state(&self) -> State {
 		// If the state doesn't exist, create it
 		let state = match fs::read_to_string("state.json") {

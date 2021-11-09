@@ -157,6 +157,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "load-dotenv",
+ "log",
  "run_script",
  "serde",
  "serde_json",

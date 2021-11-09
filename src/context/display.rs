@@ -1,6 +1,6 @@
-use crate::{context::PluginContext, types::Display};
+use crate::{context::YabaiPlugin, types::Display};
 
-impl PluginContext {
+impl YabaiPlugin {
 	pub fn get_displays(&self) -> Vec<Display> {
 		let displays = self.run_yabai_command("-m query --displays");
 		serde_json::from_str(&displays).expect("Failed to parse display ")

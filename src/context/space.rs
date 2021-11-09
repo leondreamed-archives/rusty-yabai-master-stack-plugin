@@ -1,6 +1,6 @@
-use crate::{context::PluginContext, types::Space};
+use crate::{context::YabaiPlugin, types::Space};
 
-impl PluginContext {
+impl YabaiPlugin {
 	pub fn get_spaces(&self) -> Vec<Space> {
 		let spaces = self.run_yabai_command("-m query --spaces");
 		serde_json::from_str(&spaces).expect("Failed to parse spaces")

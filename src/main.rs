@@ -1,10 +1,11 @@
-mod types;
 mod context;
+mod types;
+mod macros;
 
-use load_dotenv::load_dotenv;
-use run_script::run_script;
+use load_dotenv::try_load_dotenv;
 
-load_dotenv!();
+try_load_dotenv!();
+
 fn main() {
-    println!("Hello, world!");
+	println!("Hello, world!");
 }
