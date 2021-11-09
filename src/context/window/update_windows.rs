@@ -3,7 +3,7 @@ use crate::context::window::{CheckValidLayoutPayload, CheckValidLayoutProps};
 use super::WindowsManager;
 
 pub struct UpdateWindowsProps {
-	target_num_master_windows: usize,
+	pub target_num_master_windows: usize,
 }
 
 impl WindowsManager<'_> {
@@ -68,7 +68,7 @@ impl WindowsManager<'_> {
 					// Remove the window with the greatest y-coordinate first
 					if let Some(master_window) = master_windows.pop() {
 						log::debug!("Moving master window {} to stack", master_window.app);
-						self.move_window_to_stack(master_window);
+						self.move_window_to_stack(&master_window);
 					}
 					cur_num_master_windows -= 1;
 				}
@@ -78,7 +78,7 @@ impl WindowsManager<'_> {
 			// after the move, fill up master and then move the rest to stack
 			let middle_windows = self.get_middle_windows();
 			while middle_windows.len() > 0 {
-				let middle_window = middle_windows[0];
+				let middle_window = &middle_windows[0];
 				log::debug!("Middle window {} detected.", middle_window.app);
 				if cur_num_master_windows < target_num_master_windows {
 					log::debug!("Moving middle window {} to master.", middle_window.app);
@@ -111,7 +111,7 @@ impl WindowsManager<'_> {
 				);
 				if let Some(stack_window) = stack_windows.pop() {
 					log::debug!("Moving stack window {} to master.", stack_window.app);
-					self.move_window_to_master(stack_window);
+					self.move_window_to_master(&stack_window);
 				}
 				cur_num_master_windows += 1;
 			}

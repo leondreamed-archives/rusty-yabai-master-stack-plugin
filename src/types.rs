@@ -1,6 +1,6 @@
 use serde::{Deserialize};
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct Frame {
 	pub x: usize,
 	pub y: usize,
@@ -8,7 +8,7 @@ pub struct Frame {
 	pub h: usize,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct Window {
 	pub id: usize,
 	pub pid: usize,
@@ -33,19 +33,19 @@ pub struct Window {
 	pub border: usize,
 
 	#[serde(rename = "kebab-case")]
-	pub stackIndex: usize,
+	pub stack_index: usize,
 
 	#[serde(rename = "kebab-case")]
-	pub zoomParent: usize,
+	pub zoom_parent: usize,
 
 	#[serde(rename = "kebab-case")]
-	pub zoomFullscreen: usize,
+	pub zoom_fullscreen: usize,
 
 	#[serde(rename = "kebab-case")]
-	pub nativeFullscreen: usize,
+	pub native_fullscreen: usize,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct Display {
 	pub id: usize,
 	pub uuid: usize,
@@ -54,7 +54,7 @@ pub struct Display {
 	pub frame: Frame,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct Space {
 	pub id: String,
 	pub label: String,
@@ -66,11 +66,11 @@ pub struct Space {
 	pub focused: usize,
 
 	#[serde(rename = "kebab-case")]
-	pub nativeFullscreen: usize,
+	pub native_fullscreen: usize,
 
 	#[serde(rename = "kebab-case")]
-	pub firstWindow: usize,
+	pub first_window: usize,
 
 	#[serde(rename = "kebab-case")]
-	pub lastWindow: usize,
+	pub last_window: usize,
 }

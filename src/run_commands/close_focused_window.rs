@@ -18,7 +18,7 @@ pub fn close_focused_window(plugin: &YabaiPlugin) {
 	if wm.is_stack_window(&window_to_close) {
 		// If the window is the only stack window, then focus on the master window
 		if stack_windows.len() == 1 {
-			window_to_focus = Some(master_windows[0]);
+			window_to_focus = Some(&master_windows[0]);
 		}
 		// Focus on the window above it, or if there is no window above it, then the window below it
 		else {
@@ -28,9 +28,9 @@ pub fn close_focused_window(plugin: &YabaiPlugin) {
 
 			if let Some(position) = window_position {
 				if position == 0 {
-					window_to_focus = Some(stack_windows[1]);
+					window_to_focus = Some(&stack_windows[1]);
 				} else {
-					window_to_focus = Some(stack_windows[position - 1]);
+					window_to_focus = Some(&stack_windows[position - 1]);
 				}
 			}
 		}
@@ -38,7 +38,7 @@ pub fn close_focused_window(plugin: &YabaiPlugin) {
 		// If the window is the only master window and there is at least one stack window,
 		// focus on the bottom stack window
 		if master_windows.len() == 1 && stack_windows.len() > 0 {
-			window_to_focus = Some(stack_windows[stack_windows.len() - 1]);
+			window_to_focus = Some(&stack_windows[stack_windows.len() - 1]);
 		}
 		// Focus on the window above it, or if there is no window above it, then the window below it
 		else {
@@ -48,9 +48,9 @@ pub fn close_focused_window(plugin: &YabaiPlugin) {
 
 			if let Some(position) = window_position {
 				if position == 0 {
-					window_to_focus = Some(master_windows[1]);
+					window_to_focus = Some(&master_windows[1]);
 				} else {
-					window_to_focus = Some(master_windows[position - 1]);
+					window_to_focus = Some(&master_windows[position - 1]);
 				}
 			}
 		}

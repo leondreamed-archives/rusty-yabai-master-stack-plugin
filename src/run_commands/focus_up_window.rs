@@ -1,6 +1,7 @@
 use crate::context::{window::create_windows_manager, YabaiPlugin};
 
 pub fn focus_up_window(plugin: &YabaiPlugin) {
+	log::debug!("focus_up_window() called");
 	let mut wm = create_windows_manager(plugin);
 	if let Some(focused_window) = wm.get_focused_window() {
 		if wm.is_master_window(&focused_window)

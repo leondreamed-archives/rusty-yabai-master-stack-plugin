@@ -12,7 +12,7 @@ pub use check_valid_layout::*;
 mod update_windows;
 pub use update_windows::*;
 
-struct WindowsManager<'p> {
+pub struct WindowsManager<'p> {
 	pub display: Display,
 	pub space: Space,
 	pub expected_current_num_master_windows: usize,
@@ -51,22 +51,23 @@ impl WindowsManager<'_> {
 		let output = self.plugin.run_yabai_command("-m query --windows");
 		let windows_data: Vec<Window> =
 			serde_json::from_str(&output).expect("Failed to parse windows");
-		windows_data.into_iter().filter(|window| {
-			if window.floating != 0
-				|| window.display != self.display.index
-				|| window.space != self.space.index
-			{
-				return false;
-			}
-
-			if window.minimized == 1 {
-				return false;
-			}
-
-			return true;
-		});
-
 		windows_data
+			.into_iter()
+			.filter(|window| {
+				if window.floating != 0
+					|| window.display != self.display.index
+					|| window.space != self.space.index
+				{
+					return false;
+				}
+
+				if window.minimized == 1 {
+					return false;
+				}
+
+				return true;
+			})
+			.collect()
 	}
 
 	pub fn validate_state(&mut self, state: &mut State) {
@@ -91,8 +92,11 @@ impl WindowsManager<'_> {
 		self.windows_data = new_windows_data;
 	}
 
-	pub fn get_updated_window_data(&self, window: &Window) -> Option<&Window> {
-		self.windows_data.iter().find(|win| window.id == win.id)
+	pub fn get_updated_window_data(&self, window: &Window) -> Option<Window> {
+		self.windows_data
+			.iter()
+			.find(|win| window.id == win.id)
+			.map(|w| w.clone())
 	}
 
 	pub fn run_yabai_command(&mut self, command: &str) -> String {
@@ -101,20 +105,24 @@ impl WindowsManager<'_> {
 		return output;
 	}
 
-	pub fn get_window_data(&self, props: GetWindowDataProps) -> &Window {
+	pub fn get_window_data(&self, props: GetWindowDataProps) -> Window {
 		let mut windows_iterator = self.windows_data.iter();
 		match props {
 			GetWindowDataProps::ProcessId(process_id) => windows_iterator
 				.find(|window| window.pid == process_id)
+				.map(|w| w.clone())
 				.expect(&format!("Window with pid {} not found.", process_id)),
 			GetWindowDataProps::WindowId(window_id) => windows_iterator
 				.find(|window| window.id == window_id)
+				.map(|w| w.clone())
 				.expect(&format!("Window with id {} not found", window_id)),
 		}
 	}
 
 	pub fn get_focused_window(&self) -> Option<&Window> {
-		self.windows_data.iter().find(|w| w.focused == 1)
+		let focused_window = self.windows_data.iter().find(|w| w.focused == 1);
+		log::debug!("Focused window: {:?}", focused_window.map(|w| &w.app));
+		focused_window
 	}
 
 	/**
@@ -233,9 +241,10 @@ impl WindowsManager<'_> {
 		Some(top_right_window)
 	}
 
-	pub fn get_widest_stack_window(&self) -> Option<&Window> {
+	pub fn get_widest_stack_window(&self) -> Option<Window> {
 		let mut widest_stack_window: Option<&Window> = None;
-		for window in self.get_stack_windows() {
+		let stack_windows = self.get_stack_windows();
+		for window in &stack_windows {
 			match widest_stack_window {
 				None => widest_stack_window = Some(window),
 				Some(widest_window) => {
@@ -246,13 +255,14 @@ impl WindowsManager<'_> {
 			}
 		}
 
-		widest_stack_window
+		widest_stack_window.map(|w| w.clone())
 	}
 
-	pub fn get_widest_master_window(&self) -> Option<&Window> {
+	pub fn get_widest_master_window(&self) -> Option<Window> {
 		let mut widest_master_window: Option<&Window> = None;
+		let master_windows = self.get_master_windows();
 
-		for window in self.get_master_windows() {
+		for window in &master_windows {
 			match widest_master_window {
 				None => widest_master_window = Some(window),
 				Some(widest_window) => {
@@ -263,12 +273,12 @@ impl WindowsManager<'_> {
 			}
 		}
 
-		widest_master_window
+		widest_master_window.map(|w| w.clone())
 	}
 
 	// In the event that the windows get badly rearranged and all the windows span the entire width of
 	// the screen, split the top-right window vertically and then move the windows into the split
-	pub fn create_stack(&self) {
+	pub fn create_stack(&mut self) {
 		log::debug!("Creating stack...");
 		let top_right_window = some_or_return!(self.get_top_right_window());
 		log::debug!("Top-right window: {}", top_right_window.app);
@@ -301,15 +311,16 @@ impl WindowsManager<'_> {
 		// In this case, we want to columnize all the windows to the left of the dividing line
 		let dividing_line_x_coordinate = self.get_dividing_line_x_coordinate();
 
-		let stack_windows: Vec<&Window> = self
+		let stack_windows: Vec<Window> = self
 			.windows_data
 			.iter()
 			.filter(|window| window.frame.x < dividing_line_x_coordinate)
+			.map(|w| w.clone())
 			.collect();
 
 		if stack_windows.len() > 1 {
 			for stack_window in stack_windows {
-				if let Some(window) = self.get_updated_window_data(stack_window) {
+				if let Some(window) = self.get_updated_window_data(&stack_window) {
 					if window.split == "vertical" {
 						self.run_yabai_command(&format!("-m window {} --toggle split", window.id));
 					}
@@ -325,7 +336,7 @@ impl WindowsManager<'_> {
 		let window = some_or_return!(self.get_updated_window_data(window));
 
 		// Don't do anything if the window is already a stack window
-		if self.is_stack_window(window) {
+		if self.is_stack_window(&window) {
 			return;
 		}
 
@@ -351,7 +362,7 @@ impl WindowsManager<'_> {
 			"-m window {} --warp {}",
 			window.id, stack_window.id
 		));
-		let window = some_or_return!(self.get_updated_window_data(window));
+		let window = some_or_return!(self.get_updated_window_data(&window));
 
 		if self.windows_data.len() == 2 {
 			if window.split == "horizontal" {
@@ -364,7 +375,7 @@ impl WindowsManager<'_> {
 		}
 	}
 
-	pub fn move_window_to_master(&self, window: &Window) {
+	pub fn move_window_to_master(&mut self, window: &Window) {
 		log::debug!("Moving window {} to master", window.app);
 
 		// Use a small heuristic that helps prevent "glitchy" window rearrangements
@@ -417,83 +428,86 @@ impl WindowsManager<'_> {
 		!self.is_stack_window(window) && !self.is_master_window(window)
 	}
 
-	pub fn get_middle_windows(&self) -> Vec<&Window> {
+	pub fn get_middle_windows(&self) -> Vec<Window> {
 		self.windows_data
 			.iter()
 			.filter(|window| self.is_middle_window(window))
+			.map(|w| w.clone())
 			.collect()
 	}
 
-	pub fn get_master_windows(&self) -> Vec<&Window> {
+	pub fn get_master_windows(&self) -> Vec<Window> {
 		let dividing_line_x_coordinate = self.get_dividing_line_x_coordinate();
 		self.windows_data
 			.iter()
 			.filter(|window| window.frame.x >= dividing_line_x_coordinate)
-			.collect::<Vec<&Window>>()
+			.map(|w| w.clone())
+			.collect::<Vec<Window>>()
 	}
 
-	pub fn get_stack_windows(&self) -> Vec<&Window> {
+	pub fn get_stack_windows(&self) -> Vec<Window> {
 		self.windows_data
 			.iter()
 			.filter(|window| self.is_stack_window(window))
+			.map(|w| w.clone())
 			.collect()
 	}
 
-	pub fn get_top_window<'w>(&self, windows: &Vec<&'w Window>) -> Option<&'w Window> {
+	pub fn get_top_window<'w>(&self, windows: &Vec<Window>) -> Option<Window> {
 		if windows.len() == 0 {
 			return None;
 		}
 
-		let mut top_window = windows[0];
+		let mut top_window = &windows[0];
 		for w in windows {
 			if w.frame.y < top_window.frame.y {
 				top_window = w;
 			}
 		}
 
-		Some(top_window)
+		Some(top_window.clone())
 	}
 
-	pub fn is_top_window(&self, windows: &Vec<&Window>, window: &Window) -> bool {
+	pub fn is_top_window(&self, windows: &Vec<Window>, window: &Window) -> bool {
 		self.get_top_window(windows)
 			.and_then(|top_window| Some(top_window.id == window.id))
 			.unwrap_or(false)
 	}
 
-	pub fn get_bottom_window<'w>(&self, windows: &Vec<&'w Window>) -> Option<&'w Window> {
+	pub fn get_bottom_window<'w>(&self, windows: &Vec<Window>) -> Option<Window> {
 		if windows.len() == 0 {
 			return None;
 		}
 
-		let mut bottom_window = windows[0];
+		let mut bottom_window = &windows[0];
 		for w in windows {
 			if w.frame.y > bottom_window.frame.y {
 				bottom_window = w;
 			}
 		}
 
-		Some(bottom_window)
+		Some(bottom_window.clone())
 	}
 
-	pub fn is_bottom_window(&self, windows: &Vec<&Window>, window: &Window) -> bool {
+	pub fn is_bottom_window(&self, windows: &Vec<Window>, window: &Window) -> bool {
 		self.get_bottom_window(windows)
 			.and_then(|bottom_window| Some(bottom_window.id == window.id))
 			.unwrap_or(false)
 	}
 
-	pub fn get_top_stack_window(&self) -> Option<&Window> {
+	pub fn get_top_stack_window(&self) -> Option<Window> {
 		self.get_top_window(&self.get_stack_windows())
 	}
 
-	pub fn get_bottom_stack_window(&self) -> Option<&Window> {
+	pub fn get_bottom_stack_window(&self) -> Option<Window> {
 		self.get_bottom_window(&self.get_stack_windows())
 	}
 
-	pub fn get_top_master_window(&self) -> Option<&Window> {
+	pub fn get_top_master_window(&self) -> Option<Window> {
 		self.get_top_window(&self.get_master_windows())
 	}
 
-	pub fn get_bottom_master_window(&self) -> Option<&Window> {
+	pub fn get_bottom_master_window(&self) -> Option<Window> {
 		self.get_bottom_window(&self.get_master_windows())
 	}
 }

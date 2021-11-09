@@ -4,7 +4,7 @@ use crate::context::{
 };
 
 pub fn decrease_master_window_count(plugin: &YabaiPlugin) {
-	let wm = create_windows_manager(plugin);
+	let mut wm = create_windows_manager(plugin);
 	let mut state = plugin.read_state();
 	if state.num_master_windows[&wm.space.id] > 1 {
 		*state.num_master_windows.get_mut(&wm.space.id).unwrap() -= 1;

@@ -1,7 +1,7 @@
 use super::WindowsManager;
 
 pub struct CheckValidLayoutProps {
-	target_num_master_windows: Option<usize>,
+	pub target_num_master_windows: Option<usize>,
 }
 
 pub enum CheckValidLayoutPayload {
