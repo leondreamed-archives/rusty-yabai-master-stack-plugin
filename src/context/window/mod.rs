@@ -6,26 +6,30 @@ use crate::{
 
 use super::state::State;
 
-mod is_valid_layout;
+mod check_valid_layout;
+pub use check_valid_layout::*;
 
-struct WindowsManager<'c> {
+mod update_windows;
+pub use update_windows::*;
+
+struct WindowsManager<'p> {
 	pub display: Display,
 	pub space: Space,
 	pub expected_current_num_master_windows: usize,
-	pub context: &'c YabaiPlugin,
+	pub plugin: &'p YabaiPlugin,
 	pub windows_data: Vec<Window>,
 }
 
-pub fn create_windows_manager(context: &YabaiPlugin) -> WindowsManager {
-	let mut state = context.read_state();
-	let display = context.get_focused_display();
+pub fn create_windows_manager(plugin: &YabaiPlugin) -> WindowsManager {
+	let mut state = plugin.read_state();
+	let display = plugin.get_focused_display();
 
-	let space = context.get_focused_space();
+	let space = plugin.get_focused_space();
 
 	let wm = WindowsManager {
 		display,
 		space,
-		context,
+		plugin,
 		expected_current_num_master_windows: state.numMasterWindows[&space.id],
 		windows_data: vec![],
 	};
@@ -36,14 +40,14 @@ pub fn create_windows_manager(context: &YabaiPlugin) -> WindowsManager {
 	wm
 }
 
-enum GetWindowDataProps {
+pub enum GetWindowDataProps {
 	ProcessId(usize),
 	WindowId(usize),
 }
 
 impl WindowsManager<'_> {
 	pub fn get_windows_data(&self) -> Vec<Window> {
-		let output = self.context.run_yabai_command("-m query --windows");
+		let output = self.plugin.run_yabai_command("-m query --windows");
 		let windowsData: Vec<Window> =
 			serde_json::from_str(&output).expect("Failed to parse windows");
 		windowsData.into_iter().filter(|window| {
@@ -74,7 +78,7 @@ impl WindowsManager<'_> {
 			state.numMasterWindows[&self.space.id] = 1;
 		}
 
-		self.context.write_state(state);
+		self.plugin.write_state(state);
 	}
 
 	pub fn initialize(&self) {
@@ -91,7 +95,7 @@ impl WindowsManager<'_> {
 	}
 
 	pub fn run_yabai_command(&self, command: &str) -> String {
-		let output = self.context.run_yabai_command(command);
+		let output = self.plugin.run_yabai_command(command);
 		self.refresh_windows_data();
 		return output;
 	}
@@ -108,8 +112,8 @@ impl WindowsManager<'_> {
 		}
 	}
 
-	pub fn get_focused_window(&self) -> Option<Window> {
-		self.windows_data.into_iter().find(|w| w.focused == 1)
+	pub fn get_focused_window(&self) -> Option<&Window> {
+		self.windows_data.iter().find(|w| w.focused == 1)
 	}
 
 	/**
@@ -269,7 +273,7 @@ impl WindowsManager<'_> {
 		log::debug!("Top-right window: {}", top_right_window.app);
 
 		if top_right_window.split == "horizontal" {
-			self.context
+			self.plugin
 				.run_yabai_command(&format!("-m window {} --toggle split", top_right_window.id));
 		}
 
@@ -412,9 +416,9 @@ impl WindowsManager<'_> {
 		!self.is_stack_window(window) && !self.is_master_window(window)
 	}
 
-	pub fn get_middle_windows(&self) -> Vec<Window> {
+	pub fn get_middle_windows(&self) -> Vec<&Window> {
 		self.windows_data
-			.into_iter()
+			.iter()
 			.filter(|window| self.is_middle_window(window))
 			.collect()
 	}
@@ -434,9 +438,9 @@ impl WindowsManager<'_> {
 			.collect()
 	}
 
-	pub fn get_top_window<'w>(&self, windows: &'w Vec<&Window>) -> &'w Window {
+	pub fn get_top_window<'w>(&self, windows: &'w Vec<&Window>) -> Option<&'w Window> {
 		if windows.len() == 0 {
-			panic!("List of windows provided was empty.");
+			return None;
 		}
 
 		let top_window = windows[0];
@@ -446,16 +450,18 @@ impl WindowsManager<'_> {
 			}
 		}
 
-		top_window
+		Some(top_window)
 	}
 
-	pub fn is_top_window(&self, windows: &Vec<&Window>, window: Window) -> bool {
-		self.get_top_window(windows).id == window.id
+	pub fn is_top_window(&self, windows: &Vec<&Window>, window: &Window) -> bool {
+		self.get_top_window(windows)
+			.and_then(|top_window| Some(top_window.id == window.id))
+			.unwrap_or(false)
 	}
 
-	pub fn get_bottom_window<'w>(&self, windows: &'w Vec<&Window>) -> &'w Window {
+	pub fn get_bottom_window<'w>(&self, windows: &'w Vec<&Window>) -> Option<&'w Window> {
 		if windows.len() == 0 {
-			panic!("List of windows provided was empty.");
+			return None;
 		}
 
 		let bottom_window = windows[0];
@@ -465,26 +471,28 @@ impl WindowsManager<'_> {
 			}
 		}
 
-		bottom_window
+		Some(bottom_window)
 	}
 
 	pub fn is_bottom_window(&self, windows: &Vec<&Window>, window: &Window) -> bool {
-		self.get_bottom_window(windows).id == window.id
+		self.get_bottom_window(windows)
+			.and_then(|bottom_window| Some(bottom_window.id == window.id))
+			.unwrap_or(false)
 	}
 
-	pub fn get_top_stack_window(&self) -> &Window {
+	pub fn get_top_stack_window(&self) -> Option<&Window> {
 		self.get_top_window(&self.get_stack_windows())
 	}
 
-	pub fn get_bottom_stack_window(&self) -> &Window {
+	pub fn get_bottom_stack_window(&self) -> Option<&Window> {
 		self.get_bottom_window(&self.get_stack_windows())
 	}
 
-	pub fn get_top_master_window(&self) -> &Window {
+	pub fn get_top_master_window(&self) -> Option<&Window> {
 		self.get_top_window(&self.get_master_windows())
 	}
 
-	pub fn get_bottom_master_window(&self) -> &Window {
+	pub fn get_bottom_master_window(&self) -> Option<&Window> {
 		self.get_bottom_window(&self.get_master_windows())
 	}
 }
