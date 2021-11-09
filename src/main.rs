@@ -21,12 +21,11 @@ fn main() {
 	let plugin = YabaiPlugin::new();
 	let command_type = std::env::args().nth(1).expect("No command type given");
 	let command_value = std::env::args().nth(2).expect("No command value given");
-
 	let lock_manager = LockManager::new("plugin.lock".to_string());
-	lock_manager.acquire_lock();
+
 	std::panic::set_hook(Box::new(move |e| {
 		log::debug!("{:?}", e);
-		lock_manager.release_lock();
+		LockManager::new("plugin.lock".to_string()).release_lock();
 	}));
 
 	match command_type.as_str() {
@@ -46,4 +45,6 @@ fn main() {
 		},
 		_ => panic!("Unrecognized command type {}", command_type),
 	}
+
+	lock_manager.release_lock();
 }
